@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "blitz.theme",
+  "name": "Style & Theme",
+  "version": "1.0.0",
+  "author": "blitz",
+  "description": "Live style presets for the bar and every dropdown, plus the Omarchy theme switcher",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Style & Theme",
+    "description": "Presets, live sliders, theme switcher",
+    "category": "Appearance",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

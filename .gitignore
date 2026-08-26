@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+*.bak*
+.pytest_cache/
+state.json
+presets.json
