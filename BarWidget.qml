@@ -125,7 +125,7 @@ Panel {
       spacing: Style.space(8)
 
       Text {
-        text: "◈"
+        text: "\uF1FC"
         color: root.foreground
         font.family: root.fontFamily
         font.pixelSize: Style.font.body

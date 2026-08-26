@@ -231,6 +231,10 @@ def load_user_presets() -> dict[str, dict]:
     return out
 
 
+def slugify_theme(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(name or "").strip().lower()).strip("-")
+
+
 def resolve_value(value, palette: dict) -> object:
     if not isinstance(value, str):
         return value  # numbers (alphas, sizes, widths) keep their TOML type
@@ -396,22 +400,73 @@ def set_theme(name: str) -> dict:
     return {"ok": True, "theme": name}
 
 
+def theme_palette_for(name: str) -> dict[str, tuple[int, int, int]] | None:
+    """Read a theme's colors.toml straight from its directory (user copy
+    preferred, then system). No subprocess per theme."""
+    slug = slugify_theme(name)
+    for base in (HOME / ".local/share/omarchy/themes", Path("/usr/share/omarchy/themes")):
+        colors = base / slug / "colors.toml"
+        try:
+            data = tomllib.loads(colors.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError):
+            continue
+        out: dict[str, tuple[int, int, int]] = {}
+        for key in ("background", "foreground", "accent"):
+            value = data.get(key)
+            if isinstance(value, str) and parse_hex(value):
+                out[key] = parse_hex(value)
+        if "background" in out:
+            return out
+    return None
+
+
+def preset_swatches(keys: dict, palette: dict) -> list[str]:
+    """Three resolved colors (bar, panel, border) previewing a preset."""
+    resolved = {k: resolve_value(v, palette) for k, v in keys.items()}
+    out = []
+    for key, fallback in (("bar.background", "background"), ("popups.background", "background"), ("popups.border", "accent")):
+        raw = resolved.get(key)
+        hexed = parse_hex(raw) if isinstance(raw, str) else None
+        if hexed is None:
+            role = raw if isinstance(raw, str) and raw in palette else fallback
+            hexed = palette.get(role, palette["background"])
+        out.append(rgb(hexed))
+    return out
+
+
 def emit_state() -> dict:
     state = load_state()
+    palette = load_theme_palette()
+    builtin = []
+    for pid, preset in BUILTIN_PRESETS.items():
+        builtin.append({
+            "id": pid, "label": preset["label"], "description": preset["description"],
+            "swatches": preset_swatches(preset["keys"], palette),
+        })
+    user = []
+    for pid, preset in load_user_presets().items():
+        user.append({
+            "id": pid, "label": preset["label"], "description": preset["description"],
+            "swatches": preset_swatches(preset["keys"], palette),
+        })
+    themes = []
+    for name in list_themes():
+        swatch = theme_palette_for(name) or {}
+        themes.append({
+            "name": name,
+            "background": rgb(swatch.get("background", palette["background"])),
+            "foreground": rgb(swatch.get("foreground", palette["foreground"])),
+            "accent": rgb(swatch.get("accent", palette["accent"])),
+            "active": name == current_theme(),
+        })
     return {
         "ok": True,
         "theme": current_theme(),
-        "themes": list_themes(),
+        "themes": themes,
         "preset": state.get("preset", "default"),
         "sliders": state.get("sliders", {}),
-        "builtinPresets": [
-            {"id": pid, "label": p["label"], "description": p["description"]}
-            for pid, p in BUILTIN_PRESETS.items()
-        ],
-        "userPresets": [
-            {"id": pid, "label": p["label"], "description": p["description"]}
-            for pid, p in load_user_presets().items()
-        ],
+        "builtinPresets": builtin,
+        "userPresets": user,
         "overrides": current_overrides(),
     }
 
