@@ -72,7 +72,7 @@ class ApplyTest(unittest.TestCase):
         result = tc.apply_preset("clear-glass")
         self.assertTrue(result["ok"])
         flat = tc.read_shell_toml()
-        self.assertEqual(flat["bar.background-alpha"], 0.0)
+        self.assertEqual(flat["bar.background-alpha"], 0.32)
         # The preset re-sets bar.text to a dimmed hex computed from the palette.
         self.assertIn("bar.text", flat)
         self.assertEqual(flat["other.tool"], "keep")  # never touches keys it does not own
@@ -102,9 +102,9 @@ class ApplyTest(unittest.TestCase):
         }):
             tc.apply_preset("clear-glass")
         flat = tc.read_shell_toml()
-        # dim 0.12 of white on black: 255 * 0.88 = 224 = #e0
-        self.assertEqual(flat["bar.text"].lower(), "#e0e0e0")
-        self.assertEqual(flat["bar.background"], "transparent")
+        # dim 0.06 of white on black: 255 * 0.94 = 239.7 ≈ #f0
+        self.assertEqual(flat["bar.text"].lower(), "#f0f0f0")
+        self.assertEqual(flat["bar.background"], "background")
 
     def test_role_values_pass_through_unresolved(self) -> None:
         with unittest.mock.patch.object(tc, "load_theme_palette", return_value={
